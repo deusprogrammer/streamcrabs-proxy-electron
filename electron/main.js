@@ -2,7 +2,9 @@ const path = require('path');
 const fs = require('fs');
 const { w3cwebsocket } = require('websocket');
 
-const { app, ipcMain, protocol, BrowserWindow } = require('electron');
+const { app, ipcMain, protocol, BrowserWindow, dialog } = require('electron');
+
+const defaultConfig = require('./defaultConfig');
 
 const CONFIG_FILE = path.join(__dirname, "config.json");
 const REACT_APP_LOCATION = `file://${path.join(__dirname, '../build/index.html')}`;
@@ -14,11 +16,17 @@ try {
     console.log("Running in production mode using react app at: " + REACT_APP_LOCATION);
 }
 
-let config = JSON.parse(fs.readFileSync(CONFIG_FILE).toString());
+let config = defaultConfig;
+if (!fs.existsSync(CONFIG_FILE)) {
+    fs.writeFileSync(CONFIG_FILE, Buffer.from(JSON.stringify(config, null, 5)));
+} else {
+    config = JSON.parse(fs.readFileSync(CONFIG_FILE, {}).toString());
+}
 let pingInterval;
 let consumerInterval;
 let ws;
 let queue = [];
+
 const connect = async (channelId) => {
     ws = new w3cwebsocket('wss://deusprogrammer.com/api/ws/twitch');
     
@@ -168,4 +176,13 @@ ipcMain.handle('stopProxy', () => {
     // Stop the message pump
     clearInterval(consumerInterval);
     clearInterval(pingInterval);
+});
+
+ipcMain.handle('openDialog', async () => {
+    const response = await dialog.showOpenDialog({properties: ['openFile', 'createDirectory'] });
+    if (!response.canceled) {
+        return response.filePaths[0];
+    } else {
+        return null;
+    }
 });

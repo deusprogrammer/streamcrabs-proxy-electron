@@ -4,6 +4,14 @@ import 'react-toastify/dist/ReactToastify.css';
 import { useEffect, useState } from 'react';
 import { ToastContainer } from 'react-toastify';
 
+const fileTargetMap = {
+    CG: "Current Game File:",
+    LATEST_FOLLOW: "Latest Follow File:",
+    LATEST_SUB: "Latest Subscriber File:",
+    LATEST_CHEER: "Latest Cheer File:",
+    BIG_SHOT: "Big Shot File:"
+}
+
 const App = () => {
     const [fileTargets, setFileTargets] = useState(null);
     const [twitchChannelId, setTwitchChannelId] = useState("");
@@ -41,6 +49,19 @@ const App = () => {
         setProxyRunning(false);
     }
 
+    const openDialog = async (field) => {
+        let filePath = await window.api.send("openDialog");
+
+        if (filePath) {
+            updateConfig(field, filePath);
+            save();
+        }
+    }
+
+    const validate = () => {
+        return !twitchChannelId;
+    }
+
     if (!fileTargets) {
         return null;
     }
@@ -54,33 +75,22 @@ const App = () => {
                     <tbody>
                         <tr>
                             <td>Twitch Channel Id:</td>
-                            <td><input type='text' value={twitchChannelId} onChange={({target: {value}}) => {setTwitchChannelId(value)}} disabled={proxyRunning} /></td>
+                            <td colSpan={2}><input style={{width: "100%"}} type='text' value={twitchChannelId} onChange={({target: {value}}) => {setTwitchChannelId(value)}} onBlur={save} disabled={proxyRunning} /></td>
                         </tr>
-                        <tr>
-                            <td>Current Game Path:</td>
-                            <td><input type='text' value={fileTargets["CG"].path} onChange={({target: {value}}) => {updateConfig("CG", value)}} disabled={proxyRunning} /></td>
-                        </tr>
-                        <tr>
-                            <td>Latest Follower Path:</td>
-                            <td><input type='text' value={fileTargets["LATEST_FOLLOW"].path} onChange={({target: {value}}) => {updateConfig("LATEST_FOLLOW", value)}} disabled={proxyRunning} /></td>
-                        </tr>
-                        <tr>
-                            <td>Latest Subscriber Path:</td>
-                            <td><input type='text' value={fileTargets["LATEST_SUB"].path} onChange={({target: {value}}) => {updateConfig("LATEST_SUB", value)}} disabled={proxyRunning} /></td>
-                        </tr>
-                        <tr>
-                            <td>Latest Cheer Path:</td>
-                            <td><input type='text' value={fileTargets["LATEST_CHEER"].path} onChange={({target: {value}}) => {updateConfig("LATEST_CHEER", value)}} disabled={proxyRunning} /></td>
-                        </tr>
-                        <tr>
-                            <td>Big Shot Path:</td>
-                            <td><input type='text' value={fileTargets["BIG_SHOT"].path} onChange={({target: {value}}) => {updateConfig("BIG_SHOT", value)}} disabled={proxyRunning} /></td>
-                        </tr>
+                        { Object.keys(fileTargets).map((key) => {
+                            const fileTarget = fileTargets[key];
+                            return (
+                                <tr key={key}>
+                                    <td>{fileTargetMap[key]}</td>
+                                    <td><button onClick={() => {openDialog(key)}} disabled={proxyRunning}>Browse</button></td>
+                                    <td style={{textAlign: "left", verticalAlign: "middle"}}>{fileTarget.path ? fileTarget.path : "None"}</td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>
-            <button onClick={() => {save()}} disabled={proxyRunning}>Save</button><br />
-            {!proxyRunning ? <button onClick={() => {startProxy()}}>Start Proxy</button> : <button onClick={() => {stopProxy()}}>Stop Proxy</button>}
+            {!proxyRunning ? <button onClick={() => {startProxy()}} disabled={validate()}>Start Proxy</button> : <button onClick={() => {stopProxy()}}>Stop Proxy</button>}
         </div>
     );
 }
